@@ -23,6 +23,6 @@ All artwork is generated with HTML and CSS. No reference-site assets, fonts, or 
 
 The workflow in `.github/workflows/pages.yml` deploys the static website on pushes to `main`. It publishes only `index.html`, `style.css`, `app.js`, and `assets/`; the Node server is only for local development.
 
-If automatic Pages enablement is restricted, open the repository's **Settings → Pages**, select **GitHub Actions** as the build source, and rerun **Deploy DEFORMAT to GitHub Pages** from the Actions tab.
+To enable publishing, open the repository's **Settings → Pages**, select **GitHub Actions** as the build source, and rerun **Deploy DEFORMAT to GitHub Pages** from the Actions tab.
 
 The expected URL, once the deployment succeeds, is `https://ejaubashi.github.io/t003/`.
