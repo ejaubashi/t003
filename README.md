@@ -26,11 +26,13 @@ Character provenance and renderer licensing are recorded in `assets/MODEL-CREDIT
 ## Interactions and accessibility
 
 - Scroll through the sticky opening to move between the text columns and into a head close-up. Pointer movement changes perspective.
-- Surface, Contours, and Particles switch how the same animated figure is rendered. Rotate Object applies a quarter turn.
+- Surface, Contours, and Particles switch how the figure is rendered. Rotate Object applies a quarter turn. Dissolve Form disperses the surface into monochrome particles; Re-form Figure brings it back. Switching materials resets dispersion.
+- Drag the figure horizontally or focus its interaction area and use Left/Right arrows. Home resets the manual orientation; vertical scrolling stays native.
 - Expand a selected experiment and use its action to return to that material.
 - Index supports focus cycling and Escape. Background content is inert while the menu is open.
 - Motion Off freezes canvas, WebGL character animation and decorative CSS animation. System reduced-motion preferences are respected. Explicit scroll, material and rotation controls remain available.
 - If WebGL is unavailable, a message appears and the HTML content and navigation remain usable.
+- The contact portal responds to pointer movement with nested perspective rings. Reduced motion disables the perspective response.
 - Contact links use `enduj@dev.com`.
 
 ## Validation and deployment
@@ -42,3 +44,7 @@ The public site is https://ejaubashi.github.io/t003/. Pushing `main` triggers th
 The female sculpture holds a fixed pose while the camera and figure rotate. Neutral lighting, a platinum surface and procedural contour lines replace the former rainbow material. The source model’s bow accessories have been removed for a cleaner silhouette.
 
 To reproduce the accessory cleanup, download the credited source model and run `python scripts/prepare-figure.py /path/to/Michelle.glb assets/figure.glb`. The script checks the source SHA-256 before modifying the indexed geometry.
+
+## Motion direction and research
+
+The opening text recedes in depth before the camera close-up. Red 3D bars and an orbital line pass behind the sculpture, while topographic terrain rises during the white/red transitions. See [motion research and source references](docs/motion-research.md) for the recording observations, primary sources consulted and implementation decisions.

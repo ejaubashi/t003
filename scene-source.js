@@ -5,18 +5,34 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 const canvas = document.querySelector('#figure');
 const status = document.querySelector('#scene-status');
 let renderer, model, mixer, headBone, materialMode = '', lastWhite = -1;
-let lastState = '', lastFrame = 0, lost = false;
+let lastState = '', lastFrame = 0, lost = false, dissolution = 0;
+const dissolveUniform = { value: 0 }, timeUniform = { value: 0 };
+const architecture = new THREE.Group();
+const redMaterial = new THREE.MeshBasicMaterial({ color: 0xe21922, transparent: true, opacity: 0, depthWrite: false });
+const orbitMaterial = new THREE.MeshBasicMaterial({ color: 0x242424, transparent: true, opacity: 0, depthWrite: false });
 const materials = [], pointMaterials = [], pointObjects = [], meshes = [];
 const clamp = THREE.MathUtils.clamp, lerp = THREE.MathUtils.lerp;
 const smooth = t => { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); };
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(34, innerWidth / innerHeight, .05, 60);
 const sculpture = new THREE.Group();
-scene.add(sculpture);
+scene.add(sculpture, architecture);
+const barGeometry = new THREE.BoxGeometry(1.8, .095, .065);
+for (let index = 0; index < 3; index++) {
+  const bar = new THREE.Mesh(barGeometry, redMaterial);
+  bar.rotation.z = index * Math.PI / 2;
+  if (index === 2) { bar.rotation.y = Math.PI / 2; bar.rotation.z = .45; }
+  architecture.add(bar);
+}
+const orbit = new THREE.Mesh(new THREE.TorusGeometry(1.1, .003, 6, 160), orbitMaterial);
+orbit.rotation.x = .35;
+architecture.add(orbit);
 function unavailable(message) {
   document.body.classList.remove('scene-ready');
   document.body.classList.add('scene-unavailable');
   status.textContent = message;
+  document.querySelector('#sculpture-drag').hidden = true;
+  document.querySelector('#sculpture-drag').setAttribute('aria-disabled', 'true');
 }
 try {
   renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
@@ -69,13 +85,16 @@ try {
       // Antialiased contour lines follow the posed surface in world space.
       material.onBeforeCompile = shader => {
         shader.uniforms.uLineStrength = lineStrength;
+        shader.uniforms.uDissolve = dissolveUniform;
         shader.vertexShader = 'varying vec3 vSculpturePosition;\n' + shader.vertexShader;
         shader.vertexShader = shader.vertexShader.replace('#include <project_vertex>', `
           vSculpturePosition = (modelMatrix * vec4(transformed, 1.0)).xyz;
           #include <project_vertex>
         `);
-        shader.fragmentShader = 'varying vec3 vSculpturePosition;\nuniform float uLineStrength;\n' + shader.fragmentShader;
+        shader.fragmentShader = 'varying vec3 vSculpturePosition;\nuniform float uLineStrength;\nuniform float uDissolve;\n' + shader.fragmentShader;
         shader.fragmentShader = shader.fragmentShader.replace('#include <opaque_fragment>', `
+          float breakup = fract(sin(dot(floor(vSculpturePosition * 70.0), vec3(12.9898, 78.233, 35.123))) * 43758.5453);
+          if (breakup < uDissolve) discard;
           float contour = vSculpturePosition.y * 42.0 + vSculpturePosition.x * 1.8;
           float distanceToLine = abs(fract(contour - 0.5) - 0.5);
           float lineWidth = max(fwidth(contour) * 0.65, 0.012);
@@ -90,11 +109,13 @@ try {
       // Particle mode follows the same skinned animation instead of a separate static model.
       const pointMaterial = new THREE.ShaderMaterial({
         transparent: true, depthWrite: false,
-        uniforms: { uWhite: { value: 0 }, uPixelRatio: { value: Math.min(devicePixelRatio || 1, 1.75) } },
+        uniforms: { uWhite: { value: 0 }, uDissolve: dissolveUniform, uTime: timeUniform, uParticleOpacity: { value: 0 }, uPixelRatio: { value: Math.min(devicePixelRatio || 1, 1.75) } },
         vertexShader: `
           #include <common>
           #include <skinning_pars_vertex>
           uniform float uPixelRatio;
+          uniform float uDissolve;
+          uniform float uTime;
           varying vec3 vPosition;
           void main() {
             #include <beginnormal_vertex>
@@ -103,18 +124,24 @@ try {
             #include <begin_vertex>
             #include <skinning_vertex>
             vPosition = transformed;
-            vec4 view = modelViewMatrix * vec4(transformed, 1.0);
+            vec3 world = (modelMatrix * vec4(transformed, 1.0)).xyz;
+            float seed = fract(sin(dot(position, vec3(12.9898, 78.233, 37.719))) * 43758.5453);
+            vec3 direction = normalize(vec3(sin(seed * 41.0), cos(seed * 31.0), sin(seed * 59.0)));
+            world += direction * uDissolve * (0.12 + seed * 0.65);
+            world.y += uDissolve * sin(seed * 9.0 + uTime * 0.25) * 0.1;
+            vec4 view = viewMatrix * vec4(world, 1.0);
             gl_Position = projectionMatrix * view;
             gl_PointSize = clamp(8.0 / -view.z, 1.0, 3.0) * uPixelRatio;
           }`,
         fragmentShader: `
           uniform float uWhite;
+          uniform float uParticleOpacity;
           varying vec3 vPosition;
           void main() {
             float d = length(gl_PointCoord - 0.5);
             if (d > 0.5) discard;
             vec3 color = vec3(0.78);
-            gl_FragColor = vec4(mix(color, vec3(0.12), uWhite), 0.8 * smoothstep(0.5, 0.2, d));
+            gl_FragColor = vec4(mix(color, vec3(0.12), uWhite), uParticleOpacity * (1.0 - smoothstep(0.2, 0.5, d)));
           }`,
       });
       const points = new THREE.Points(object.geometry, pointMaterial);
@@ -159,6 +186,7 @@ function resize() {
   lastState = '';
 }
 addEventListener('resize', resize);
+addEventListener('visibilitychange', () => { lastFrame = performance.now(); });
 canvas.addEventListener('webglcontextlost', event => {
   event.preventDefault(); lost = true;
   unavailable('THE GRAPHICS CONTEXT WAS INTERRUPTED. RESTORING THE SCENE…');
@@ -167,12 +195,16 @@ canvas.addEventListener('webglcontextrestored', () => location.reload());
 function frame(now) {
   requestAnimationFrame(frame);
   if (!renderer || !model || lost || document.hidden || now - lastFrame < 32) return;
-  const dt = Math.min((now - lastFrame) / 1000, .05); lastFrame = now;
+  const dt = Math.min((now - lastFrame) / 1000, .25); lastFrame = now;
   const state = window.deformatScene;
   if (!state || state.width === undefined) return;
-  const key = `${state.scroll}/${state.manualTurn}/${state.material}/${state.width}/${state.height}/${state.reduced}`;
+  const key = `${state.scroll}/${state.manualTurn}/${state.material}/${state.width}/${state.height}/${state.reduced}/${state.dissolve}`;
   if (state.reduced && lastState === key) return;
   lastState = key;
+  dissolution = state.reduced ? state.dissolve : lerp(dissolution, state.dissolve, 1 - Math.exp(-dt * 5));
+  dissolveUniform.value = dissolution;
+  timeUniform.value = state.time;
+  canvas.dataset.dissolve = dissolution.toFixed(2);
 
   const enter = smooth((state.intro - .1) / .85);
   const retreat = smooth(state.form);
@@ -185,6 +217,15 @@ function frame(now) {
   const focus = head.multiplyScalar(enter * (1 - retreat));
   camera.position.set(focus.x + (state.reduced ? 0 : state.pointerX * .06), focus.y + .03, focus.z + distance);
   camera.lookAt(focus);
+  const structureStrength = smooth((state.white - .2) / .65) * (1 - smooth(state.form * .85));
+  architecture.visible = structureStrength > .001;
+  architecture.position.copy(focus); architecture.position.z -= .42;
+  architecture.rotation.set(state.pointerY * .1, -.25 + state.intro * .6, -.25 + state.intro * 1.4 + state.form * 1.3);
+  architecture.scale.setScalar(lerp(.48, .92, retreat));
+  redMaterial.opacity = structureStrength;
+  orbitMaterial.opacity = structureStrength * .35;
+  orbit.rotation.y = state.form + state.pointerX * .15;
+
   canvas.style.opacity = String(state.visibility);
   if (state.visibility < .001) { renderer.clear(); return; }
   if (materialMode !== state.material) {
@@ -195,9 +236,10 @@ function frame(now) {
       mesh.material.visible = !particleMode;
       mesh.material.userData.lineStrength.value = materialMode === 'wire' ? .95 : .4;
     });
-    pointObjects.forEach(points => { points.visible = particleMode; });
     document.querySelector('#figure-mode').textContent = { surface: 'PLATINUM / FEMALE FORM', wire: 'CONTOUR STUDY', points: 'PARTICLE PRESENCE' }[materialMode];
   }
+  pointObjects.forEach(points => { points.visible = materialMode === 'points' || dissolution > .001; });
+  pointMaterials.forEach(material => { material.uniforms.uParticleOpacity.value = materialMode === 'points' ? .8 : dissolution * .8; });
   if (Math.abs(lastWhite - state.white) > .005) {
     lastWhite = state.white;
     materials.forEach(material => {

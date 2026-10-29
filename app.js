@@ -8,7 +8,7 @@ const smooth = n => { n = clamp(n); return n * n * (3 - 2 * n); };
 const form = $('#form'), work = $('#work'), exit = $('#exit');
 const pointer = { x: 0, y: 0 }, eased = { x: 0, y: 0 };
 let width, height, scroll = scrollY, reduced = media.matches;
-let rotation = .4, manualTurn = 0, material = 'surface', dirty = true;
+let rotation = .4, manualTurn = 0, material = 'surface', dirty = true, dissolve = 0;
 let last = 0, clock = 0, bounds = {}, menuOpen = false;
 const progress = $('#progress'), xLabel = $('#coord-x'), yLabel = $('#coord-y');
 const menu = $('#navigation'), menuButton = $('#menu-button'), motionButton = $('#motion-toggle');
@@ -37,7 +37,7 @@ function setMenu(open) {
   menuButton.setAttribute('aria-expanded', String(open));
   menuButton.lastElementChild.textContent = open ? '−' : '+';
   menu.classList.toggle('open', open); menu.inert = !open;
-  main.inert = open; $('footer').inert = open;
+  main.inert = open; $('footer').inert = open; $('#sculpture-drag').inert = open;
   document.body.classList.toggle('menu-open', open);
   dirty = true;
 }
@@ -64,6 +64,9 @@ motionState();
 $('#year').textContent = new Date().getFullYear();
 function setMaterial(value) {
   material = value;
+  dissolve = 0;
+  $('#dissolve-figure').setAttribute('aria-pressed', 'false');
+  $('#dissolve-figure').textContent = 'DISSOLVE FORM +';
   document.querySelectorAll('[data-material]').forEach(button => {
     button.setAttribute('aria-pressed', String(button.dataset.material === value));
   });
@@ -117,6 +120,7 @@ for (const [side, offset] of [['left', 0], ['right', 7]]) {
  textLines.forEach((_, index) => {
   const line = document.createElement('span');
   line.textContent = textLines[(index + offset) % textLines.length];
+  line.style.setProperty('--row', String(index % 8));
   line.style.setProperty('--indent', `${Math.round(8 + Math.sin(index / 33 * Math.PI) * 34)}px`);
   column.append(line);
  });
@@ -140,17 +144,32 @@ function render(now) {
   ctx?.clearRect(0, 0, width, height);
   window.deformatScene = { reduced, rotation, manualTurn, material, pointerX: eased.x, pointerY: eased.y,
     intro: introProgress, form: clamp((scroll - bounds.form) / (height * .9)),
-    white: p, visibility: 1 - workFade, width, height, scroll };
+    white: p, visibility: 1 - workFade, dissolve, time: clock, width, height, scroll };
+  document.documentElement.style.setProperty('--type-exit', String(smooth((introProgress - .05) / .48)));
+  const interaction = $('#sculpture-drag');
+  interaction.hidden = workFade > .95 || document.body.classList.contains('scene-unavailable');
   document.documentElement.style.setProperty('--passage-spread', `${smooth(introProgress) * 100}px`);
   document.documentElement.style.setProperty('--passage-color', `rgb(${mix(198,42,p)},${mix(199,42,p)},${mix(192,42,p)})`);
   document.documentElement.style.setProperty('--front-visibility', p * smooth((introProgress - .28) / .5) * (1 - smooth((introProgress - .85) / .15)));
   if (!ctx) return;
-  ctx.globalAlpha = (.24 + p * .16) * (1 - q * .5); ctx.strokeStyle = p > .5 ? '#8c8c88' : '#48484a'; ctx.lineWidth = .6;
-  for (let row = 0; row < 22; row++) {
+  const wave = Math.max(Math.sin(p * Math.PI), Math.sin(q * Math.PI));
+  const rise = wave * height * .36;
+  const edge = x => {
+    const n = x / width;
+    return height * .9 - rise + (Math.sin(n * 19 + clock * .08) * Math.sin(n * 9 - 2) * 23
+      + Math.sin(n * 61 + 1) * 8 + Math.sin(n * 133) * 3) * (1 + wave * 2.8);
+  };
+  ctx.globalAlpha = wave * .9;
+  ctx.fillStyle = q > .001 ? '#e21922' : '#e9e9e5';
+  ctx.beginPath(); ctx.moveTo(0, height);
+  for (let x = 0; x <= width + 10; x += 8) ctx.lineTo(x, edge(x));
+  ctx.lineTo(width, height); ctx.closePath(); ctx.fill();
+  ctx.globalAlpha = (.17 + wave * .3) * (1 - q * .3);
+  ctx.strokeStyle = p > .5 ? '#777773' : '#55555a'; ctx.lineWidth = .6;
+  for (let row = 0; row < 38; row++) {
     ctx.beginPath();
-    for (let x = 0; x <= width; x += 15) {
-      const n = x / width, wave = Math.sin(n * 13 + row * .15 + clock * .15) * Math.sin(n * 7 - row * .08) * 35;
-      const y = height * .88 + row * 7 + wave * (1 + row * .035) - p * 45;
+    for (let x = 0; x <= width + 10; x += 12) {
+      const y = edge(x) + row * (4 + wave * 2) + Math.sin(x / width * 9 + row * .08) * row * .45;
       if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
     }
     ctx.stroke();
@@ -158,3 +177,50 @@ function render(now) {
   ctx.globalAlpha = 1;
 }
 resize(); requestAnimationFrame(render);
+
+// Direct manipulation changes orientation without intercepting vertical scrolling.
+const dragSurface = $('#sculpture-drag');
+let dragging = null;
+function announceAngle() {
+ const angle = Math.round(((manualTurn * 180 / Math.PI) % 360 + 360) % 360);
+ dragSurface.setAttribute('aria-valuenow', String(angle));
+ dragSurface.setAttribute('aria-valuetext', `${angle} degrees`);
+}
+dragSurface.addEventListener('pointerdown', event => {
+ if (event.button !== 0) return;
+ dragging = { id: event.pointerId, x: event.clientX, angle: manualTurn };
+ dragSurface.setPointerCapture(event.pointerId);
+ dragSurface.classList.add('dragging');
+});
+dragSurface.addEventListener('pointermove', event => {
+ if (!dragging || event.pointerId !== dragging.id) return;
+ manualTurn = dragging.angle + (event.clientX - dragging.x) * .008;
+ dirty = true; announceAngle();
+});
+function releaseDrag() { dragging = null; dragSurface.classList.remove('dragging'); }
+dragSurface.addEventListener('pointerup', releaseDrag);
+dragSurface.addEventListener('pointercancel', releaseDrag);
+dragSurface.addEventListener('lostpointercapture', releaseDrag);
+dragSurface.addEventListener('keydown', event => {
+ if (!['ArrowLeft', 'ArrowRight', 'Home'].includes(event.key)) return;
+ event.preventDefault();
+ manualTurn = event.key === 'Home' ? 0 : manualTurn + (event.key === 'ArrowLeft' ? -1 : 1) * Math.PI / 12;
+ dirty = true; announceAngle();
+});
+$('#turn-object').addEventListener('click', announceAngle);
+$('#dissolve-figure').addEventListener('click', event => {
+ dissolve = dissolve ? 0 : 1;
+ event.currentTarget.setAttribute('aria-pressed', String(!!dissolve));
+ event.currentTarget.textContent = dissolve ? 'REFORM FIGURE ↺' : 'DISSOLVE FORM +';
+ dirty = true;
+});
+const portal = $('.portal');
+portal.addEventListener('pointermove', event => {
+ if (reduced || event.pointerType === 'touch') return;
+ const bounds = portal.getBoundingClientRect();
+ portal.style.setProperty('--portal-x', `${(event.clientX - bounds.left) / bounds.width * 2 - 1}`);
+ portal.style.setProperty('--portal-y', `${(event.clientY - bounds.top) / bounds.height * 2 - 1}`);
+});
+function resetPortal() { portal.style.setProperty('--portal-x', '0'); portal.style.setProperty('--portal-y', '0'); }
+portal.addEventListener('pointerleave', resetPortal);
+motionButton.addEventListener('click', resetPortal);
