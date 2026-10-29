@@ -257,4 +257,4 @@ Current package metadata, primary documentation, pinned source examples and sele
 
 ## Implementation follow-up
 
-The first authorised experiment after this study implements bounded liquid-surface shader deformation, a coherent analytic particle flow and a projective render-to-texture portal into a second gallery scene. It uses the existing WebGL renderer family and does not claim a full fluid simulation, persistent velocity simulation, path tracing, Gaussian splatting or WebGPU migration. See `portal-source.js` and `scene-source.js`.
+The first authorised experiment after this study implements bounded liquid-surface shader deformation, a coherent analytic particle flow and a projective render-to-texture portal into a second scene. The destination was subsequently developed into a red-dune landscape with floating chrome forms, 3D typography and a controllable flowing ribbon. It uses the existing WebGL renderer family and does not claim a full fluid simulation, persistent velocity simulation, path tracing, Gaussian splatting or WebGPU migration. See `portal-source.js` and `scene-source.js`.

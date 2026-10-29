@@ -5,7 +5,7 @@ import { createPortalExperience } from './portal-source.js';
 
 const canvas = document.querySelector('#figure');
 const status = document.querySelector('#scene-status');
-const portalExperience = createPortalExperience();
+createPortalExperience();
 let renderer, model, mixer, headBone, materialMode = '', lastWhite = -1;
 let lastState = '', lastFrame = 0, lost = false, dissolution = 0;
 const dissolveUniform = { value: 0 }, timeUniform = { value: 0 }, liquidUniform = { value: 1 };
@@ -33,7 +33,6 @@ function unavailable(message) {
   document.body.classList.remove('scene-ready');
   document.body.classList.add('scene-unavailable');
   status.textContent = message;
-  portalExperience.disable();
   document.querySelector('#sculpture-drag').hidden = true;
   document.querySelector('#sculpture-drag').setAttribute('aria-disabled', 'true');
 }
@@ -211,7 +210,6 @@ try {
     originalMaterials.forEach(material => material.dispose());
     textures.forEach(texture => texture.dispose());
     sculpture.add(model);
-    portalExperience.setModel(model);
     document.body.classList.add('scene-ready');
     status.textContent = 'HUMAN / READY';
     canvas.dataset.ready = 'true';
