@@ -3,6 +3,18 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "scripts": { "dev": "node server.mjs", "start": "node server.mjs" },
-  "engines": { "node": ">=20" }
+  "scripts": {
+    "dev": "node server.mjs",
+    "start": "node server.mjs",
+    "build": "esbuild scene-source.js --bundle --format=esm --minify --outfile=assets/scene.js --legal-comments=eof"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "three": "0.180.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.10"
+  }
 }

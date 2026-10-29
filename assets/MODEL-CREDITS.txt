@@ -1,0 +1,8 @@
+Human figure: Soldier / Vanguard, Mixamo. Distributed as part of the Three.js animation examples.
+Source: https://github.com/mrdoob/three.js/blob/dev/examples/models/gltf/Soldier.glb
+Example: https://threejs.org/examples/webgl_animation_skinning_blending.html
+Original character and animation: Mixamo / Adobe. Model-specific rights remain with their respective owners.
+
+The character is used within this rendered experience, with replacement materials and camera choreography. It is not the original model from unbelievablycrap.com.
+
+Three.js: Copyright 2010-2025 Three.js Authors. MIT license in THREE-LICENSE.txt.

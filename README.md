@@ -1,33 +1,40 @@
 # DEFORMAT
 
-An original interactive portfolio inspired by the supplied reference recording. The experience moves between dark, white, black-gallery and red scenes, with a locally generated 3D bust, moving topographic contours and an animated contact portal.
+An interactive portfolio inspired by the supplied reference recording: a detailed, full-body character travels through a dense typographic passage. Scrolling pushes the camera toward the head while the scene turns from dark iridescence to white, before opening into the experiments gallery and red contact scene. This is an original implementation using a replacement character, not the reference site's original model.
 
-## Development
+## Run
 
-Requires Node.js 20+. No dependencies, build step, external models, fonts or services are needed.
+Requires Node.js 20+. The production renderer is bundled and committed, so the static site and local server work without installing packages:
 
 ```sh
-cd /workspace/t003
 npm run dev
 ```
 
-The server listens on port 3000; use `PORT` to override it.
+The server uses port 3000 by default; set `PORT` to override it.
 
-## Interactions
+## Edit the 3D experience
 
-- Move the pointer to change the sculpture's perspective.
-- In the Form section, switch between shaded surface, wireframe and particles, or rotate the object by a quarter turn.
-- Expand an experiment in Work and use its action to explore that material in the sculpture.
-- Use Index or footer links to navigate. The overlay supports keyboard focus cycling and Escape, and makes background content inert.
-- Motion On/Off freezes continuous canvas and CSS animation. System reduced-motion preferences are respected; scrolling and explicit material/rotation controls remain available.
-- The contact links open a message to `enduj@dev.com`.
+```sh
+npm ci
+npm run build
+```
 
-Geometry is projected from 3D coordinates into Canvas 2D with perspective, depth sorting and directional shading. Rendering is capped at about 30fps with a bounded pixel ratio. Hidden tabs skip rendering; reduced motion redraws only when the scene changes. Text and navigation remain HTML even if canvas is unavailable.
+`scene-source.js` uses Three.js for the skinned character, physical thin-film material, environment lighting, particles, and camera choreography. `npm run build` produces the committed `assets/scene.js`. Rebuild after editing the renderer. `app.js` controls navigation, text, scroll state and terrain. Assets are served locally; no CDN or external API is required at runtime. The GitHub Pages workflow deploys the prebuilt static files.
 
-## Validation
+Character provenance and renderer licensing are recorded in `assets/MODEL-CREDITS.txt` and `assets/THREE-LICENSE.txt`.
 
-Chromium checks cover desktop/mobile rendering, 390/768/1440px overflow, all three material modes, explicit rotation, a frozen canvas with motion off, experiment expansion and navigation, inert background, Escape, contact target and reduced-motion preference. No JavaScript runtime errors were observed.
+## Interactions and accessibility
 
-## Deployment
+- Scroll through the sticky opening to move between the text columns and into a head close-up. Pointer movement changes perspective.
+- Surface, Structure, and Particles switch how the same animated figure is rendered. Rotate Object applies a quarter turn.
+- Expand a selected experiment and use its action to return to that material.
+- Index supports focus cycling and Escape. Background content is inert while the menu is open.
+- Motion Off freezes canvas, WebGL character animation and decorative CSS animation. System reduced-motion preferences are respected. Explicit scroll, material and rotation controls remain available.
+- If WebGL is unavailable, a message appears and the HTML content and navigation remain usable.
+- Contact links use `enduj@dev.com`.
 
-The workflow in `.github/workflows/pages.yml` publishes the static site when `main` is updated. The site uses relative asset paths for GitHub Pages subdirectory hosting. The intended public URL is https://ejaubashi.github.io/t003/.
+## Validation and deployment
+
+Browser checks cover model loading, shader compilation, camera transitions, three materials, explicit rotation, reduced-motion stability, direct loading into the white scene, menu/experiment interactions, responsive widths and graceful WebGL fallback.
+
+The public site is https://ejaubashi.github.io/t003/. Pushing `main` triggers the GitHub Pages deployment workflow. Asset URLs are relative for subdirectory hosting.

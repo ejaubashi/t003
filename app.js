@@ -91,75 +91,35 @@ const sectionObserver = new IntersectionObserver(entries => {
   }
 }, { rootMargin: '-35% 0px -45% 0px' });
 sections.forEach(section => sectionObserver.observe(section));
-// The portrait is an original parametric mesh. All geometry is created locally.
-const rows = 64, columns = 48, vertices = [], faces = [];
-const profile = [[-1, 0], [-.96, .16], [-.86, .29], [-.68, .34], [-.45, .33], [-.25, .28], [-.08, .18], [0, .12], [.2, .14], [.32, .27], [.55, .64], [.8, .82], [1, .86]];
-function radius(y) {
-  const index = profile.findIndex(pair => pair[0] >= y);
-  if (index <= 0) return profile[0][1];
-  const a = profile[index - 1], b = profile[index];
-  return mix(a[1], b[1], (y - a[0]) / (b[0] - a[0]));
-}
-for (let row = 0; row < rows; row++) {
-  const y = row / (rows - 1) * 2 - 1, r = radius(y);
-  for (let column = 0; column < columns; column++) {
-    const angle = column / columns * Math.PI * 2;
-    const x = Math.sin(angle) * r;
-    let z = Math.cos(angle) * r * .85;
-    const front = Math.max(0, Math.cos(angle));
-    const nose = .15 * Math.exp(-(((y + .43) / .13) ** 2)) * Math.exp(-((x / .065) ** 2));
-    const eyes = -.055 * Math.exp(-(((y + .59) / .065) ** 2)) * Math.exp(-(((Math.abs(x) - .13) / .07) ** 2));
-    const mouth = -.035 * Math.exp(-(((y + .23) / .026) ** 2)) * Math.exp(-((x / .12) ** 4));
-    z += (nose + eyes + mouth) * front ** 8;
-    vertices.push({ x, y, z, row, column });
-    if (row < rows - 1) {
-      const a = row * columns + column, b = row * columns + (column + 1) % columns;
-      faces.push([a, b, b + columns, a + columns]);
-    }
-  }
-}
-const projected = vertices.map(() => ({ x: 0, y: 0, z: 0, rx: 0, ry: 0 }));
-const ordered = faces.map(indices => ({ indices, z: 0 }));
-function portrait(angle, p, visibility) {
-  const ca = Math.cos(angle), sa = Math.sin(angle), tilt = reduced ? 0 : eased.y * .16;
-  const scale = Math.min(width * (width < 700 ? .54 : .30), height * .39) * mix(1, 1.14, p);
-  const cx = width * (width < 700 ? .64 : .54), cy = height * .51;
-  for (let i = 0; i < vertices.length; i++) {
-    const v = vertices[i], o = projected[i];
-    const x = v.x * ca + v.z * sa, z = -v.x * sa + v.z * ca;
-    o.ry = v.y * Math.cos(tilt) - z * Math.sin(tilt);
-    o.z = v.y * Math.sin(tilt) + z * Math.cos(tilt);
-    o.rx = x;
-    const perspective = 3.5 / (3.5 - o.z);
-    o.x = cx + x * scale * perspective; o.y = cy + o.ry * scale * perspective;
-  }
-  ctx.globalAlpha = visibility;
-  if (material === 'points') {
-    for (const v of projected) {
-      const light = clamp((v.z + .5) / 1.1);
-      ctx.fillStyle = p > .5 ? `rgba(30,30,30,${.15 + light * .7})` : `hsla(${190 + v.ry * 95 + light * 90},55%,${35 + light * 40}%,${.2 + light * .8})`;
-      ctx.beginPath(); ctx.arc(v.x, v.y, .7 + light * 1.1, 0, Math.PI * 2); ctx.fill();
-    }
-    return;
-  }
-  for (const face of ordered) face.z = face.indices.reduce((sum, index) => sum + projected[index].z, 0) / 4;
-  ordered.sort((a, b) => a.z - b.z);
-  for (const face of ordered) {
-    const [a, b, c, d] = face.indices.map(index => projected[index]);
-    const ux = b.rx - a.rx, uy = b.ry - a.ry, uz = b.z - a.z;
-    const vx = d.rx - a.rx, vy = d.ry - a.ry, vz = d.z - a.z;
-    const nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
-    const norm = Math.hypot(nx, ny, nz) || 1;
-    const light = clamp((nx * -.4 + ny * -.6 + nz * .8) / norm * .5 + .5);
-    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.lineTo(c.x, c.y); ctx.lineTo(d.x, d.y); ctx.closePath();
-    if (material === 'wire') {
-      ctx.strokeStyle = p > .5 ? `rgba(15,15,15,${.08 + light * .45})` : `hsla(${180 + light * 130},45%,65%,${.08 + light * .55})`;
-      ctx.lineWidth = .6; ctx.stroke();
-    } else {
-      ctx.fillStyle = p > .5 ? `hsl(50,5%,${mix(53,99,light)}%)` : `hsl(${190 + light * 135 + a.ry * 40},${35 + light * 25}%,${9 + light * 57}%)`;
-      ctx.fill(); ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = .5; ctx.stroke();
-    }
-  }
+// The full-body WebGL renderer consumes this shared scene state.
+window.deformatScene = {};
+const textLines = [
+ 'THERE IS NO SINGLE WAY TO SEE A HUMAN.', 'SOMEWHERE BETWEEN THE REAL AND THE RENDERED.',
+ 'WE ARE MORE THAN THE SHAPE WE TAKE.', 'A BODY IS A PLACE FOR AN IDEA TO BEGIN.',
+ 'LOOK LONG ENOUGH AND THE SURFACE CHANGES.', 'THE SAME PERSON. ANOTHER PERSPECTIVE.',
+ 'NOT AN AVATAR. NOT AN ANSWER.', 'A QUESTION TAKING HUMAN FORM.',
+ 'LIGHT FINDS A WAY THROUGH EVERYTHING.', 'THE SPACE BETWEEN WORDS IS NEVER EMPTY.',
+ 'YOU BRING YOUR OWN POINT OF VIEW.', 'THAT IS WHERE THE EXPERIMENT STARTS.',
+ 'WHAT YOU SEE IS ALREADY MOVING.', 'WHAT YOU KNOW IS ALREADY CHANGING.',
+ 'A THOUSAND VERSIONS OF THE SAME MOMENT.', 'NONE OF THEM COMPLETELY STILL.',
+ 'THERE IS SOMETHING HUMAN IN THE ERROR.', 'THERE IS SOMETHING NEW IN THE FAMILIAR.',
+ 'WE BUILD WORLDS TO GET A LITTLE CLOSER.', 'WE BREAK RULES TO FIND ANOTHER WAY.',
+ 'THIS IS A STUDY IN NOT STANDING STILL.', 'THIS IS A PORTRAIT WITHOUT A FRAME.',
+ 'EVERY PIXEL REMEMBERS THE LIGHT.', 'EVERY MOVEMENT LEAVES A POSSIBILITY.',
+ 'COME A LITTLE CLOSER.', 'THERE IS ALWAYS SOMETHING ELSE TO SEE.',
+ 'NOT EVERYTHING NEEDS AN EXPLANATION.', 'SOME THINGS JUST NEED TO BE FELT.',
+ 'SOMEWHERE BETWEEN ORDER AND INSTINCT.', 'SOMEWHERE BETWEEN YOU AND THE SCREEN.',
+ 'LET THE ORDINARY BECOME UNFAMILIAR.', 'LET THE FAMILIAR BECOME SOMETHING ELSE.',
+ 'WE ARE STILL BECOMING.', 'WE ARE STILL HERE.'
+];
+for (const [side, offset] of [['left', 0], ['right', 7]]) {
+ const column = document.querySelector(`.passage-${side}`);
+ textLines.forEach((_, index) => {
+  const line = document.createElement('span');
+  line.textContent = textLines[(index + offset) % textLines.length];
+  line.style.setProperty('--indent', `${Math.round(8 + Math.sin(index / 33 * Math.PI) * 34)}px`);
+  column.append(line);
+ });
 }
 function render(now) {
   requestAnimationFrame(render);
@@ -170,23 +130,21 @@ function render(now) {
     eased.x = mix(eased.x, pointer.x, .07); eased.y = mix(eased.y, pointer.y, .07);
   } else if (!dirty) return;
   dirty = false;
-  const p = smooth((scroll - bounds.form + height * .65) / (height * .9));
+  const introProgress = clamp(scroll / (height * 1.4));
+  const p = smooth((scroll - height * .6) / (height * .85));
   const workFade = smooth((scroll - bounds.work + height * .4) / (height * .6));
   const q = smooth((scroll - bounds.exit + height * .65) / (height * .8));
   const bg = q > 0 ? `rgb(${mix(242,226,q)},${mix(242,25,q)},${mix(239,34,q)})` : `rgb(${mix(9,242,p)},${mix(9,242,p)},${mix(9,239,p)})`;
   document.body.style.backgroundColor = bg; document.body.style.color = p > .5 ? '#090909' : '#e9e9e4';
   progress.textContent = String(Math.round(clamp(scroll / Math.max(1,bounds.end)) * 100)).padStart(3, '0') + '%';
+  ctx?.clearRect(0, 0, width, height);
+  window.deformatScene = { reduced, rotation, manualTurn, material, pointerX: eased.x, pointerY: eased.y,
+    intro: introProgress, form: clamp((scroll - bounds.form) / (height * .9)),
+    white: p, visibility: 1 - workFade, width, height, scroll };
+  document.documentElement.style.setProperty('--passage-spread', `${smooth(introProgress) * 100}px`);
+  document.documentElement.style.setProperty('--passage-color', `rgb(${mix(198,42,p)},${mix(199,42,p)},${mix(192,42,p)})`);
+  document.documentElement.style.setProperty('--front-visibility', p * smooth((introProgress - .28) / .5) * (1 - smooth((introProgress - .85) / .15)));
   if (!ctx) return;
-  ctx.clearRect(0, 0, width, height);
-  const visibility = (1 - workFade) * (1 - q);
-  const angle = rotation + manualTurn + (reduced ? 0 : eased.x * .5) + p * 1.2;
-  if (p > 0 && visibility > .001) {
-    ctx.save(); ctx.translate(width * .54, height * .51); ctx.rotate(-.1 + angle * .09);
-    ctx.globalAlpha = p * visibility; ctx.fillStyle = '#e21922';
-    ctx.fillRect(-width * .3, -height * .05, width * .6, height * .1);
-    ctx.fillRect(-width * .025, -height * .47, width * .05, height * .94); ctx.restore();
-  }
-  if (visibility > .001) portrait(angle, p, visibility);
   ctx.globalAlpha = (.24 + p * .16) * (1 - q * .5); ctx.strokeStyle = p > .5 ? '#8c8c88' : '#48484a'; ctx.lineWidth = .6;
   for (let row = 0; row < 22; row++) {
     ctx.beginPath();

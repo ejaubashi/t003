@@ -3,14 +3,14 @@ import { readFile, stat } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { resolve, extname, sep } from 'node:path';
 const root = resolve(fileURLToPath(new URL('.', import.meta.url)));
-const types = { '.html':'text/html', '.css':'text/css', '.js':'text/javascript', '.svg':'image/svg+xml', '.ttf':'font/ttf', '.json':'application/json' };
+const types = { '.html':'text/html', '.css':'text/css', '.js':'text/javascript', '.svg':'image/svg+xml', '.ttf':'font/ttf', '.json':'application/json', '.glb':'model/gltf-binary' };
 createServer(async (req, res) => {
   try {
     const url = new URL(req.url, 'http://localhost');
     const path = resolve(root, '.' + decodeURIComponent(url.pathname === '/' ? '/index.html' : url.pathname));
     if (!path.startsWith(root + sep) && path !== resolve(root, 'index.html')) throw new Error('Invalid path');
     const relative = path.slice(root.length + 1);
-    if (!['index.html', 'style.css', 'app.js', 'assets/icon.svg', 'assets/symbols.ttf'].includes(relative)) throw new Error('Not public');
+    if (!['index.html', 'style.css', 'app.js', 'assets/icon.svg', 'assets/symbols.ttf', 'assets/scene.js', 'assets/figure.glb'].includes(relative)) throw new Error('Not public');
     if (!(await stat(path)).isFile()) throw new Error('Not a file');
     res.writeHead(200, { 'Content-Type': `${types[extname(path)]}; charset=utf-8`, 'X-Content-Type-Options':'nosniff' });
     res.end(await readFile(path));
