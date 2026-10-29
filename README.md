@@ -48,3 +48,5 @@ To reproduce the accessory cleanup, download the credited source model and run `
 ## Motion direction and research
 
 The opening text recedes in depth before the camera close-up. Red 3D bars and an orbital line pass behind the sculpture, while topographic terrain rises during the white/red transitions. See [motion research and source references](docs/motion-research.md) for the recording observations, primary sources consulted and implementation decisions.
+
+The silhouette is refined with fuller hips and torso, a balanced waist, tapered trouser legs and slightly fuller arms. The original rig is posed into a relaxed asymmetric stance; all material and particle modes use the same refined geometry. The preparation script reproduces the geometry changes from the pinned source asset.

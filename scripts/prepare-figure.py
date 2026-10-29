@@ -1,8 +1,9 @@
-"""Remove the source figure's bow accessories without changing its body or rig.
+"""Refine the female silhouette and remove bow accessories while preserving the rig.
 
 Usage: python scripts/prepare-figure.py downloaded-Michelle.glb assets/figure.glb
 """
 import hashlib
+import math
 import json
 import struct
 import sys
@@ -33,6 +34,42 @@ f={5123:'H',5125:'I'}[a['componentType']]
 binary=bytearray(binary)
 struct.pack_into('<'+f*len(kept),binary,o,*kept)
 a['count']=len(kept)
+# Use smooth, bounded changes in the rest pose so all rendered modes share
+# the same silhouette. Keep the waist balanced rather than exaggerating it.
+position_accessor=d['accessors'][p['attributes']['POSITION']]
+position_view=d['bufferViews'][position_accessor['bufferView']]
+position_offset=position_view.get('byteOffset',0)+position_accessor.get('byteOffset',0)
+position_stride=position_view.get('byteStride',12)
+def bell(y,center,width):
+ return math.exp(-((y-center)/width)**2)
+def smoothstep(a,b,t):
+ t=max(0,min(1,(t-a)/(b-a)))
+ return t*t*(3-2*t)
+refined=[]
+for i,(x,y,z) in enumerate(pos):
+ if y<1.32 and abs(x)<.28:
+  # Fuller hips, a softer waist and chest, and a rounder pelvis in profile.
+  torso=1+.19*bell(y,.91,.14)+.12*bell(y,1.065,.075)+.09*bell(y,1.21,.09)
+  x*=torso
+  z*=1+.17*bell(y,.91,.14)+.09*bell(y,1.08,.1)
+  if z>.01:
+   z+=.009*bell(y,1.22,.07)*math.exp(-((abs(x)-.045)/.05)**2)
+ if .145<y<.82:
+  # Taper the source's oversized trouser legs into a more natural leg line.
+  blend=smoothstep(.16,.26,y)*(1-smoothstep(.72,.82,y))
+  taper=.56+.33*smoothstep(.25,.72,y)
+  leg_axis=.105 if x>=0 else -.105
+  x=leg_axis+(x-leg_axis)*(1-blend*(1-taper))
+  z*=1-blend*(.32-.18*smoothstep(.3,.72,y))
+ if 1.20<y<1.32 and abs(x)>.25:
+  # Give the forearms slightly more volume without altering hands or fingers.
+  amount=smoothstep(.25,.34,abs(x))*(1-smoothstep(.56,.62,abs(x)))
+  y=1.26+(y-1.26)*(1+amount*.1)
+  z*=1+amount*.1
+ refined.append((x,y,z))
+ struct.pack_into('<fff',binary,position_offset+i*position_stride,x,y,z)
+position_accessor['min']=[min(v[k] for v in refined) for k in range(3)]
+position_accessor['max']=[max(v[k] for v in refined) for k in range(3)]
 js=json.dumps(d,separators=(',',':')).encode();js+=b' '*((-len(js))%4)
 out=struct.pack('<III',0x46546c67,2,12+8+len(js)+8+len(binary))+struct.pack('<II',len(js),0x4e4f534a)+js+struct.pack('<II',len(binary),0x004e4942)+binary
 open(sys.argv[2],'wb').write(out)

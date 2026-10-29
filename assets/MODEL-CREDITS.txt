@@ -3,6 +3,6 @@ Source: https://github.com/mrdoob/three.js/blob/dev/examples/models/gltf/Michell
 Example: https://threejs.org/examples/webgpu_skinning.html
 Original character and animation: Mixamo / Adobe. Model-specific rights remain with their respective owners.
 
-The bow accessories have been removed. The figure is presented in a held sculptural pose, with replacement monochrome materials, procedural contour lines and original camera choreography. It is not the original model from unbelievablycrap.com.
+The bow accessories have been removed and the silhouette has been proportionally refined. The figure is presented in a custom, relaxed standing pose, with replacement monochrome materials, procedural contour lines and original camera choreography. It is not the original model from unbelievablycrap.com.
 
 Three.js: Copyright 2010-2025 Three.js Authors. MIT license in THREE-LICENSE.txt.

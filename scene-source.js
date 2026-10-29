@@ -54,12 +54,33 @@ try {
   const fill = new THREE.DirectionalLight(0xffffff, 1.2);
   fill.position.set(-3, -1, 2); scene.add(fill);
 
-  new GLTFLoader().load(new URL('./assets/figure.glb?v=woman-1', location.href).href, gltf => {
+  new GLTFLoader().load(new URL('./assets/figure.glb?v=natural-3', location.href).href, gltf => {
     model = gltf.scene;
     mixer = new THREE.AnimationMixer(model);
-    const pose = gltf.animations.find(clip => clip.name === 'SambaDance');
-    if (pose) { mixer.clipAction(pose).play(); mixer.setTime(.7); }
-    // Hold a sculptural pose; movement comes from the camera and slow rotation.
+    const pose = gltf.animations.find(clip => clip.name === 'TPose');
+    if (pose) { mixer.clipAction(pose).play(); mixer.setTime(0); }
+    // Aim joints in world space for a relaxed, asymmetric standing pose.
+    // This preserves the existing rig, skin weights and particle correspondence.
+    const joints = new Map();
+    model.traverse(node => { if (node.isBone) joints.set(node.name.replace(/[^a-z0-9]/gi, '').toLowerCase(), node); });
+    function aimJoint(name, childName, direction) {
+      const bone = joints.get(`mixamorig${name}`.toLowerCase());
+      const child = joints.get(`mixamorig${childName}`.toLowerCase());
+      if (!bone || !child) return;
+      model.updateMatrixWorld(true);
+      const current = child.getWorldPosition(new THREE.Vector3()).sub(bone.getWorldPosition(new THREE.Vector3())).normalize();
+      const delta = new THREE.Quaternion().setFromUnitVectors(current, new THREE.Vector3(...direction).normalize());
+      const parentWorld = bone.parent.getWorldQuaternion(new THREE.Quaternion());
+      const localDelta = parentWorld.clone().invert().multiply(delta).multiply(parentWorld);
+      bone.quaternion.premultiply(localDelta);
+    }
+    aimJoint('LeftArm', 'LeftForeArm', [.2, -1, .03]);
+    aimJoint('LeftForeArm', 'LeftHand', [-.13, -1, .1]);
+    aimJoint('RightArm', 'RightForeArm', [-.45, -.85, .1]);
+    aimJoint('RightForeArm', 'RightHand', [.3, -.55, .75]);
+    aimJoint('LeftUpLeg', 'LeftLeg', [.12, -1, .04]);
+    aimJoint('LeftLeg', 'LeftFoot', [-.04, -1, -.03]);
+    model.updateMatrixWorld(true);
     const box = new THREE.Box3().setFromObject(model);
     const size = box.getSize(new THREE.Vector3());
     const center = box.getCenter(new THREE.Vector3());
@@ -70,6 +91,7 @@ try {
     model.traverse(object => {
       if (object.isBone && /head$/i.test(object.name)) headBone = object;
       if (!object.isMesh) return;
+      object.geometry.computeVertexNormals();
       meshes.push(object);
       const originals = Array.isArray(object.material) ? object.material : [object.material];
       for (const original of originals) {
@@ -77,10 +99,10 @@ try {
         for (const value of Object.values(original)) if (value?.isTexture) textures.add(value);
       }
       const material = new THREE.MeshPhysicalMaterial({
-        color: 0x999999, metalness: .72, roughness: .3,
+        color: 0x999999, metalness: .72, roughness: .36,
         clearcoat: .55, clearcoatRoughness: .18, envMapIntensity: 1.4, side: THREE.DoubleSide,
       });
-      const lineStrength = { value: .4 };
+      const lineStrength = { value: .15 };
       material.userData.lineStrength = lineStrength;
       // Antialiased contour lines follow the posed surface in world space.
       material.onBeforeCompile = shader => {
@@ -234,7 +256,7 @@ function frame(now) {
     meshes.forEach(mesh => {
       // Keep the mesh parent visible so its particle child can be rendered.
       mesh.material.visible = !particleMode;
-      mesh.material.userData.lineStrength.value = materialMode === 'wire' ? .95 : .4;
+      mesh.material.userData.lineStrength.value = materialMode === 'wire' ? .95 : .15;
     });
     document.querySelector('#figure-mode').textContent = { surface: 'PLATINUM / FEMALE FORM', wire: 'CONTOUR STUDY', points: 'PARTICLE PRESENCE' }[materialMode];
   }
@@ -245,7 +267,7 @@ function frame(now) {
     materials.forEach(material => {
       material.color.lerpColors(new THREE.Color(0x999999), new THREE.Color(0xf5f5f2), state.white);
       material.metalness = lerp(.72, .12, state.white);
-      material.roughness = lerp(.3, .5, state.white);
+      material.roughness = lerp(.36, .5, state.white);
     });
     pointMaterials.forEach(material => { material.uniforms.uWhite.value = state.white; });
   }
