@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#090909"><meta name="description" content="DEFORMAT — Independent digital experiments in form, motion and perception."><title>DEFORMAT — Beyond the ordinary</title><link rel="icon" href="assets/icon.svg"><link rel="stylesheet" href="style.css?v=natural-3"><script src="app.js?v=natural-3" defer></script><script type="module" src="assets/scene.js?v=natural-3"></script></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#090909"><meta name="description" content="DEFORMAT — Independent digital experiments in form, motion and perception."><title>DEFORMAT — Beyond the ordinary</title><link rel="icon" href="assets/icon.svg"><link rel="stylesheet" href="style.css?v=fluid-4"><script src="app.js?v=fluid-4" defer></script><script type="module" src="assets/scene.js?v=fluid-4"></script></head>
 <body>
 <a class="skip-link" href="#index">Skip to content</a>
 <canvas id="world" aria-hidden="true"></canvas>
@@ -8,7 +8,7 @@
 <div class="front-words" aria-hidden="true"><span>BETWEEN</span><i>THE LINES.</i></div>
 <div id="scene-status" role="status">INITIALISING THE HUMAN / 000</div>
 <header><a class="brand" href="#index" aria-label="Deformat home">D/F<span>®</span></a><p>INDEPENDENT PRACTICE<br>DIGITAL / FORM / FEELING</p><button id="menu-button" aria-expanded="false" aria-controls="navigation">INDEX <span>+</span></button></header>
-<nav id="navigation" aria-label="Main navigation" inert><a href="#index">01 / IN THE MAKING</a><a href="#form">02 / ANOTHER PERSPECTIVE</a><a href="#work">03 / SELECTED EXPERIMENTS</a><a href="#exit">04 / A WAY OUT</a><a href="mailto:enduj@dev.com">LET’S TALK ↗</a><span>THERE IS ALWAYS ANOTHER WAY TO SEE.</span></nav>
+<nav id="navigation" aria-label="Main navigation" inert><a href="#index">01 / IN THE MAKING</a><a href="#form">02 / ANOTHER PERSPECTIVE</a><a href="#threshold">03 / THE THRESHOLD</a><a href="#work">04 / SELECTED EXPERIMENTS</a><a href="#exit">05 / A WAY OUT</a><a href="mailto:enduj@dev.com">LET’S TALK ↗</a><span>THERE IS ALWAYS ANOTHER WAY TO SEE.</span></nav>
 <aside class="coordinates" aria-hidden="true"><span>X <b id="coord-x">000</b><br>Y <b id="coord-y">000</b></span><span>PERCEPTION<br>IS A MOVING TARGET.</span><span>FORM 001<br>STATUS: IN FLUX</span></aside>
 <aside class="side-note" aria-hidden="true">EXPERIMENT NO. 001<br>NO FIXED POINT OF VIEW<br><span>SCROLL TO TRANSFORM ↓</span></aside>
 <main tabindex="-1">
@@ -21,7 +21,14 @@
 <div class="intro-bottomline"><span>A STUDY IN PRESENCE.<br>DRAG TO CHANGE PERSPECTIVE.</span><span>SCROLL TO TRAVEL<br>↓</span><span>WEBGL / REAL-TIME<br><span id="figure-mode">PLATINUM / FEMALE FORM</span></span></div>
 </div></section>
 <section id="form" class="chapter form" aria-labelledby="form-title"><div class="form-top"><span>OBJECT / SUBJECT<br>THE SPACE BETWEEN.</span><span>ROTATION: INFINITE<br>MATERIAL: POSSIBILITY</span></div><h2 id="form-title"><span class="form-word-left">OUT OF</span><span class="form-word-right">THE<br>ORDINARY.</span></h2><div class="object-label">FIG. 002 / AN IDEA TAKING SHAPE<br><span id="scene-description">PLATINUM SURFACE</span></div>
-<div class="scene-controls" role="group" aria-label="Sculpture material"><span>CHANGE THE MATERIAL</span><div><button data-material="surface" aria-pressed="true">01 / SURFACE</button><button data-material="wire" aria-pressed="false">02 / CONTOURS</button><button data-material="points" aria-pressed="false">03 / PARTICLES</button></div><div class="scene-actions"><button id="turn-object" aria-label="Rotate sculpture a quarter turn">ROTATE OBJECT ↻</button><button id="dissolve-figure" aria-pressed="false">DISSOLVE FORM +</button></div></div><div class="section-caption"><span>02 — ANOTHER PERSPECTIVE</span><span>NOTHING IS ONLY ONE THING.</span></div></section>
+<div class="scene-controls" role="group" aria-label="Sculpture material"><span>CHANGE THE MATERIAL</span><div><button data-material="surface" aria-pressed="true">01 / SURFACE</button><button data-material="wire" aria-pressed="false">02 / CONTOURS</button><button data-material="points" aria-pressed="false">03 / PARTICLES</button></div><div class="scene-actions"><button id="turn-object" aria-label="Rotate sculpture a quarter turn">ROTATE OBJECT ↻</button><button id="ripple-figure" aria-pressed="true">LIQUID / ON</button><button id="dissolve-figure" aria-pressed="false">DISSOLVE FORM +</button></div></div><div class="section-caption"><span>02 — ANOTHER PERSPECTIVE</span><span>NOTHING IS ONLY ONE THING.</span></div></section>
+<section id="threshold" class="chapter threshold" aria-labelledby="threshold-title">
+<div class="threshold-stage">
+<canvas id="portal-world" aria-hidden="true"></canvas>
+<div class="threshold-top"><span>003 / THE THRESHOLD</span><span>ONE FORM. ANOTHER WORLD.</span></div>
+<div class="threshold-copy"><span class="eyebrow">[ A WINDOW INTO ELSEWHERE ]</span><h2 id="threshold-title">BEYOND<br>THE<br><i>SURFACE.</i></h2><p>Follow the form.<br>Scroll through the opening.</p><button id="enter-portal">ENTER THE PORTAL ↓</button></div>
+<div class="threshold-bottom"><span id="portal-status" role="status">PREPARING THE NEXT SPACE</span><span>SCROLL TO TRAVEL / MOVE TO LOOK</span></div>
+</div></section>
 <section id="work" class="chapter work" aria-labelledby="work-title"><div class="work-heading"><span class="eyebrow">[ SELECTED EXPERIMENTS / 001—003 ]</span><h2 id="work-title">IDEAS IN<br><i>PROGRESS.</i></h2><p>NO CLIENT BRIEF. NO FINISH LINE.<br>THREE EXPLORATIONS OF WHAT COULD BE.</p></div>
 <div class="experiments">
 <details class="experiment" open><summary><span>001</span><h3>OTHER SELF</h3><span>FORM / IDENTITY</span><b aria-hidden="true">+</b></summary><div class="experiment-content"><div class="art art-orbit" aria-hidden="true"><i></i><i></i><i></i><span>SELF / OTHER</span></div><div><span class="eyebrow">01 — A DIFFERENT KIND OF PORTRAIT</span><p>What makes something recognisably human? A study of identity through shifting surfaces, imperfect symmetry and digital light.</p><button data-experiment="surface">EXPLORE THE SCULPTURE ↗</button></div></div></details>

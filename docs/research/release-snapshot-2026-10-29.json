@@ -1,0 +1,82 @@
+{
+  "checked_date": "2026-10-29",
+  "packages": [
+    {
+      "package": "three",
+      "version": "0.186.1",
+      "published": "2026-09-24T14:42:21.301Z",
+      "registry": "https://registry.npmjs.org/three",
+      "repository": {
+        "url": "git+https://github.com/mrdoob/three.js.git",
+        "type": "git"
+      },
+      "peerDependencies": null
+    },
+    {
+      "package": "gsap",
+      "version": "3.15.0",
+      "published": "2026-04-13T13:15:35.800Z",
+      "registry": "https://registry.npmjs.org/gsap",
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/greensock/GSAP.git"
+      },
+      "peerDependencies": null
+    },
+    {
+      "package": "lenis",
+      "version": "1.3.27",
+      "published": "2026-10-15T15:44:06.231Z",
+      "registry": "https://registry.npmjs.org/lenis",
+      "repository": {
+        "url": "git+https://github.com/darkroomengineering/lenis.git",
+        "type": "git"
+      },
+      "peerDependencies": {
+        "vue": ">=3.0.0",
+        "react": ">=17.0.0",
+        "@nuxt/kit": ">=3.0.0"
+      }
+    },
+    {
+      "package": "@sparkjsdev/spark",
+      "version": "2.4.0",
+      "published": "2026-10-20T11:06:59.128Z",
+      "registry": "https://registry.npmjs.org/@sparkjsdev/spark",
+      "repository": {
+        "url": "git+https://github.com/sparkjsdev/spark.git",
+        "type": "git"
+      },
+      "peerDependencies": {
+        "three": ">=0.180.0"
+      }
+    },
+    {
+      "package": "three-gpu-pathtracer",
+      "version": "0.0.27",
+      "published": "2026-10-08T13:25:05.440Z",
+      "registry": "https://registry.npmjs.org/three-gpu-pathtracer",
+      "repository": {
+        "url": "git+https://github.com/gkjohnson/three-gpu-pathtracer.git",
+        "type": "git"
+      },
+      "peerDependencies": {
+        "three": ">=0.185.0",
+        "xatlas-web": "^0.1.0",
+        "three-mesh-bvh": ">=0.9.15"
+      }
+    },
+    {
+      "package": "postprocessing",
+      "version": "6.39.5",
+      "published": "2026-09-09T19:34:43.526Z",
+      "registry": "https://registry.npmjs.org/postprocessing",
+      "repository": {
+        "url": "git+https://github.com/pmndrs/postprocessing.git"
+      },
+      "peerDependencies": {
+        "three": ">= 0.168.0 < 0.187.0"
+      }
+    }
+  ]
+}

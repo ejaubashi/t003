@@ -50,3 +50,11 @@ To reproduce the accessory cleanup, download the credited source model and run `
 The opening text recedes in depth before the camera close-up. Red 3D bars and an orbital line pass behind the sculpture, while topographic terrain rises during the white/red transitions. See [motion research and source references](docs/motion-research.md) for the recording observations, primary sources consulted and implementation decisions.
 
 The silhouette is refined with fuller hips and torso, a balanced waist, tapered trouser legs and slightly fuller arms. The original rig is posed into a relaxed asymmetric stance; all material and particle modes use the same refined geometry. The preparation script reproduces the geometry changes from the pinned source asset.
+
+## Fluid / threshold experiment
+
+The main sculpture has a subtle animated liquid-platinum treatment, with a Liquid On/Off control. Deformation is bounded and suppressed near the head; particles share that deformation and then follow an analytic flow field during dispersion. This is a shader-driven effect, not a persistent fluid-physics simulation or a WebGPU migration.
+
+A new Threshold section contains a real projective render-to-texture portal. `portal-source.js` lazily creates a second WebGL renderer near that section, clones the existing posed sculpture into a lit gallery and renders the gallery through an elliptical aperture. Scrolling crosses the portal plane and switches to the gallery view directly. Enter the Portal provides an explicit keyboard-accessible alternative. Reduced motion removes time-based movement while keeping deliberate navigation.
+
+The second renderer runs only near the section. Portal render-target resolution and device-pixel ratio are bounded, and half-float targets have an unsigned-byte fallback. The model is reused from the loaded scene; no second model download is required. The public static bundle still builds with `npm run build`.

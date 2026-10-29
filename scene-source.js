@@ -1,12 +1,14 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { createPortalExperience } from './portal-source.js';
 
 const canvas = document.querySelector('#figure');
 const status = document.querySelector('#scene-status');
+const portalExperience = createPortalExperience();
 let renderer, model, mixer, headBone, materialMode = '', lastWhite = -1;
 let lastState = '', lastFrame = 0, lost = false, dissolution = 0;
-const dissolveUniform = { value: 0 }, timeUniform = { value: 0 };
+const dissolveUniform = { value: 0 }, timeUniform = { value: 0 }, liquidUniform = { value: 1 };
 const architecture = new THREE.Group();
 const redMaterial = new THREE.MeshBasicMaterial({ color: 0xe21922, transparent: true, opacity: 0, depthWrite: false });
 const orbitMaterial = new THREE.MeshBasicMaterial({ color: 0x242424, transparent: true, opacity: 0, depthWrite: false });
@@ -31,6 +33,7 @@ function unavailable(message) {
   document.body.classList.remove('scene-ready');
   document.body.classList.add('scene-unavailable');
   status.textContent = message;
+  portalExperience.disable();
   document.querySelector('#sculpture-drag').hidden = true;
   document.querySelector('#sculpture-drag').setAttribute('aria-disabled', 'true');
 }
@@ -75,7 +78,7 @@ try {
       bone.quaternion.premultiply(localDelta);
     }
     aimJoint('LeftArm', 'LeftForeArm', [.2, -1, .03]);
-    aimJoint('LeftForeArm', 'LeftHand', [-.13, -1, .1]);
+    aimJoint('LeftForeArm', 'LeftHand', [.14, -1, .08]);
     aimJoint('RightArm', 'RightForeArm', [-.45, -.85, .1]);
     aimJoint('RightForeArm', 'RightHand', [.3, -.55, .75]);
     aimJoint('LeftUpLeg', 'LeftLeg', [.12, -1, .04]);
@@ -108,12 +111,25 @@ try {
       material.onBeforeCompile = shader => {
         shader.uniforms.uLineStrength = lineStrength;
         shader.uniforms.uDissolve = dissolveUniform;
-        shader.vertexShader = 'varying vec3 vSculpturePosition;\n' + shader.vertexShader;
+        shader.uniforms.uLiquid = liquidUniform;
+        shader.uniforms.uTime = timeUniform;
+        shader.vertexShader = 'varying vec3 vSculpturePosition;\nuniform float uLiquid;\nuniform float uTime;\n' + shader.vertexShader;
         shader.vertexShader = shader.vertexShader.replace('#include <project_vertex>', `
-          vSculpturePosition = (modelMatrix * vec4(transformed, 1.0)).xyz;
           #include <project_vertex>
+          vec3 liquidWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;
+          float bodyMask = 1.0 - smoothstep(0.45, 0.72, liquidWorld.y);
+          liquidWorld.z += sin(liquidWorld.y * 13.0 - uTime * 1.5 + liquidWorld.x * 4.0) * 0.013 * uLiquid * bodyMask;
+          liquidWorld.x += sin(liquidWorld.y * 9.0 + uTime) * 0.005 * uLiquid * bodyMask;
+          vSculpturePosition = liquidWorld;
+          mvPosition = viewMatrix * vec4(liquidWorld, 1.0);
+          gl_Position = projectionMatrix * mvPosition;
         `);
-        shader.fragmentShader = 'varying vec3 vSculpturePosition;\nuniform float uLineStrength;\nuniform float uDissolve;\n' + shader.fragmentShader;
+        shader.fragmentShader = 'varying vec3 vSculpturePosition;\nuniform float uLineStrength;\nuniform float uDissolve;\nuniform float uLiquid;\nuniform float uTime;\n' + shader.fragmentShader;
+        shader.fragmentShader = shader.fragmentShader.replace('#include <normal_fragment_maps>', `
+          #include <normal_fragment_maps>
+          float surfaceMask = 1.0 - smoothstep(0.45, 0.72, vSculpturePosition.y);
+          normal = normalize(normal + vec3(sin(vSculpturePosition.y * 22.0 - uTime * 1.5), cos(vSculpturePosition.x * 18.0 + uTime), 0.0) * 0.08 * uLiquid * surfaceMask);
+        `);
         shader.fragmentShader = shader.fragmentShader.replace('#include <opaque_fragment>', `
           float breakup = fract(sin(dot(floor(vSculpturePosition * 70.0), vec3(12.9898, 78.233, 35.123))) * 43758.5453);
           if (breakup < uDissolve) discard;
@@ -131,11 +147,12 @@ try {
       // Particle mode follows the same skinned animation instead of a separate static model.
       const pointMaterial = new THREE.ShaderMaterial({
         transparent: true, depthWrite: false,
-        uniforms: { uWhite: { value: 0 }, uDissolve: dissolveUniform, uTime: timeUniform, uParticleOpacity: { value: 0 }, uPixelRatio: { value: Math.min(devicePixelRatio || 1, 1.75) } },
+        uniforms: { uWhite: { value: 0 }, uDissolve: dissolveUniform, uTime: timeUniform, uLiquid: liquidUniform, uParticleOpacity: { value: 0 }, uPixelRatio: { value: Math.min(devicePixelRatio || 1, 1.75) } },
         vertexShader: `
           #include <common>
           #include <skinning_pars_vertex>
           uniform float uPixelRatio;
+          uniform float uLiquid;
           uniform float uDissolve;
           uniform float uTime;
           varying vec3 vPosition;
@@ -147,10 +164,15 @@ try {
             #include <skinning_vertex>
             vPosition = transformed;
             vec3 world = (modelMatrix * vec4(transformed, 1.0)).xyz;
+            float bodyMask = 1.0 - smoothstep(0.45, 0.72, world.y);
+            world.z += sin(world.y * 13.0 - uTime * 1.5 + world.x * 4.0) * 0.013 * uLiquid * bodyMask;
+            world.x += sin(world.y * 9.0 + uTime) * 0.005 * uLiquid * bodyMask;
             float seed = fract(sin(dot(position, vec3(12.9898, 78.233, 37.719))) * 43758.5453);
-            vec3 direction = normalize(vec3(sin(seed * 41.0), cos(seed * 31.0), sin(seed * 59.0)));
-            world += direction * uDissolve * (0.12 + seed * 0.65);
-            world.y += uDissolve * sin(seed * 9.0 + uTime * 0.25) * 0.1;
+            float phase = world.y * 4.0 + uTime * 0.35;
+            vec3 flow = vec3(sin(phase), cos(world.x * 3.0 - uTime * 0.25) * 0.35, cos(phase));
+            float swirl = uDissolve * (0.1 + seed * 0.65);
+            world += flow * swirl;
+            world.y += sin(seed * 3.14159 + phase) * uDissolve * 0.12;
             vec4 view = viewMatrix * vec4(world, 1.0);
             gl_Position = projectionMatrix * view;
             gl_PointSize = clamp(8.0 / -view.z, 1.0, 3.0) * uPixelRatio;
@@ -189,6 +211,7 @@ try {
     originalMaterials.forEach(material => material.dispose());
     textures.forEach(texture => texture.dispose());
     sculpture.add(model);
+    portalExperience.setModel(model);
     document.body.classList.add('scene-ready');
     status.textContent = 'HUMAN / READY';
     canvas.dataset.ready = 'true';
@@ -220,12 +243,13 @@ function frame(now) {
   const dt = Math.min((now - lastFrame) / 1000, .25); lastFrame = now;
   const state = window.deformatScene;
   if (!state || state.width === undefined) return;
-  const key = `${state.scroll}/${state.manualTurn}/${state.material}/${state.width}/${state.height}/${state.reduced}/${state.dissolve}`;
+  const key = `${state.scroll}/${state.manualTurn}/${state.material}/${state.width}/${state.height}/${state.reduced}/${state.dissolve}/${state.liquid}`;
   if (state.reduced && lastState === key) return;
   lastState = key;
   dissolution = state.reduced ? state.dissolve : lerp(dissolution, state.dissolve, 1 - Math.exp(-dt * 5));
   dissolveUniform.value = dissolution;
   timeUniform.value = state.time;
+  liquidUniform.value = state.liquid;
   canvas.dataset.dissolve = dissolution.toFixed(2);
 
   const enter = smooth((state.intro - .1) / .85);

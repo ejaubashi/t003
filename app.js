@@ -8,7 +8,7 @@ const smooth = n => { n = clamp(n); return n * n * (3 - 2 * n); };
 const form = $('#form'), work = $('#work'), exit = $('#exit');
 const pointer = { x: 0, y: 0 }, eased = { x: 0, y: 0 };
 let width, height, scroll = scrollY, reduced = media.matches;
-let rotation = .4, manualTurn = 0, material = 'surface', dirty = true, dissolve = 0;
+let rotation = .4, manualTurn = 0, material = 'surface', dirty = true, dissolve = 0, liquid = 1;
 let last = 0, clock = 0, bounds = {}, menuOpen = false;
 const progress = $('#progress'), xLabel = $('#coord-x'), yLabel = $('#coord-y');
 const menu = $('#navigation'), menuButton = $('#menu-button'), motionButton = $('#motion-toggle');
@@ -144,10 +144,12 @@ function render(now) {
   ctx?.clearRect(0, 0, width, height);
   window.deformatScene = { reduced, rotation, manualTurn, material, pointerX: eased.x, pointerY: eased.y,
     intro: introProgress, form: clamp((scroll - bounds.form) / (height * .9)),
-    white: p, visibility: 1 - workFade, dissolve, time: clock, width, height, scroll };
+    white: p, visibility: (1 - workFade) * (1 - smooth((scroll - $('#threshold').offsetTop + height * .6) / (height * .4))), dissolve, liquid, time: clock, width, height, scroll };
   document.documentElement.style.setProperty('--type-exit', String(smooth((introProgress - .05) / .48)));
   const interaction = $('#sculpture-drag');
-  interaction.hidden = workFade > .95 || document.body.classList.contains('scene-unavailable');
+  const threshold = $('#threshold');
+  const throughPortal = scroll + height * .35 > threshold.offsetTop && scroll < threshold.offsetTop + threshold.offsetHeight;
+  interaction.hidden = workFade > .95 || throughPortal || document.body.classList.contains('scene-unavailable');
   document.documentElement.style.setProperty('--passage-spread', `${smooth(introProgress) * 100}px`);
   document.documentElement.style.setProperty('--passage-color', `rgb(${mix(198,42,p)},${mix(199,42,p)},${mix(192,42,p)})`);
   document.documentElement.style.setProperty('--front-visibility', p * smooth((introProgress - .28) / .5) * (1 - smooth((introProgress - .85) / .15)));
@@ -224,3 +226,14 @@ portal.addEventListener('pointermove', event => {
 function resetPortal() { portal.style.setProperty('--portal-x', '0'); portal.style.setProperty('--portal-y', '0'); }
 portal.addEventListener('pointerleave', resetPortal);
 motionButton.addEventListener('click', resetPortal);
+
+$('#ripple-figure').addEventListener('click', event => {
+ liquid = liquid ? 0 : 1;
+ event.currentTarget.setAttribute('aria-pressed', String(!!liquid));
+ event.currentTarget.textContent = liquid ? 'LIQUID / ON' : 'LIQUID / OFF';
+ dirty = true;
+});
+$('#enter-portal').addEventListener('click', () => {
+ const section = $('#threshold');
+ window.scrollTo({ top: section.offsetTop + innerHeight * 1.25, behavior: reduced ? 'instant' : 'smooth' });
+});
