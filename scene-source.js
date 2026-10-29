@@ -24,25 +24,26 @@ try {
   renderer.setSize(innerWidth, innerHeight, false);
   renderer.setClearColor(0x000000, 0);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = .8;
+  renderer.toneMappingExposure = .95;
   const room = new RoomEnvironment();
   const generator = new THREE.PMREMGenerator(renderer);
   const environment = generator.fromScene(room, .04);
   scene.environment = environment.texture;
   room.dispose(); generator.dispose();
-  scene.add(new THREE.HemisphereLight(0xd5e5ff, 0x15151b, .7));
-  const key = new THREE.DirectionalLight(0xd7e5ff, 3);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x181818, .6));
+  const key = new THREE.DirectionalLight(0xffffff, 3);
   key.position.set(-3, 4, 4); scene.add(key);
-  const rim = new THREE.DirectionalLight(0x8555ff, 2.5);
+  const rim = new THREE.DirectionalLight(0xffffff, 4);
   rim.position.set(3, 2, -2); scene.add(rim);
-  const fill = new THREE.DirectionalLight(0x40f7cf, 1.5);
+  const fill = new THREE.DirectionalLight(0xffffff, 1.2);
   fill.position.set(-3, -1, 2); scene.add(fill);
 
-  new GLTFLoader().load(new URL('./assets/figure.glb', location.href).href, gltf => {
+  new GLTFLoader().load(new URL('./assets/figure.glb?v=woman-1', location.href).href, gltf => {
     model = gltf.scene;
     mixer = new THREE.AnimationMixer(model);
-    const idle = gltf.animations.find(clip => clip.name === 'Idle');
-    if (idle) { mixer.clipAction(idle).play(); mixer.update(.12); }
+    const pose = gltf.animations.find(clip => clip.name === 'SambaDance');
+    if (pose) { mixer.clipAction(pose).play(); mixer.setTime(.7); }
+    // Hold a sculptural pose; movement comes from the camera and slow rotation.
     const box = new THREE.Box3().setFromObject(model);
     const size = box.getSize(new THREE.Vector3());
     const center = box.getCenter(new THREE.Vector3());
@@ -60,16 +61,26 @@ try {
         for (const value of Object.values(original)) if (value?.isTexture) textures.add(value);
       }
       const material = new THREE.MeshPhysicalMaterial({
-        color: 0x535b77, metalness: .96, roughness: .3, clearcoat: 1,
-        clearcoatRoughness: .1, iridescence: 1, iridescenceIOR: 1.8,
-        iridescenceThicknessRange: [100, 950], envMapIntensity: 1.4,
+        color: 0x999999, metalness: .72, roughness: .3,
+        clearcoat: .55, clearcoatRoughness: .18, envMapIntensity: 1.4, side: THREE.DoubleSide,
       });
-      // Thin-film shading is augmented by a gentle, view-dependent spectral reflection.
+      const lineStrength = { value: .4 };
+      material.userData.lineStrength = lineStrength;
+      // Antialiased contour lines follow the posed surface in world space.
       material.onBeforeCompile = shader => {
+        shader.uniforms.uLineStrength = lineStrength;
+        shader.vertexShader = 'varying vec3 vSculpturePosition;\n' + shader.vertexShader;
+        shader.vertexShader = shader.vertexShader.replace('#include <project_vertex>', `
+          vSculpturePosition = (modelMatrix * vec4(transformed, 1.0)).xyz;
+          #include <project_vertex>
+        `);
+        shader.fragmentShader = 'varying vec3 vSculpturePosition;\nuniform float uLineStrength;\n' + shader.fragmentShader;
         shader.fragmentShader = shader.fragmentShader.replace('#include <opaque_fragment>', `
-          float spectral = dot(normalize(normal), normalize(vViewPosition));
-          vec3 spectrum = 0.5 + 0.5 * cos(6.28318 * (vec3(0.0, 0.33, 0.67) + spectral * 0.7 + vViewPosition.y * 0.09));
-          outgoingLight = mix(outgoingLight, outgoingLight * (0.45 + spectrum * 1.6), iridescence * 0.72);
+          float contour = vSculpturePosition.y * 42.0 + vSculpturePosition.x * 1.8;
+          float distanceToLine = abs(fract(contour - 0.5) - 0.5);
+          float lineWidth = max(fwidth(contour) * 0.65, 0.012);
+          float ink = 1.0 - smoothstep(lineWidth, lineWidth * 1.8, distanceToLine);
+          outgoingLight *= 1.0 - ink * uLineStrength;
           #include <opaque_fragment>
         `);
       };
@@ -102,7 +113,7 @@ try {
           void main() {
             float d = length(gl_PointCoord - 0.5);
             if (d > 0.5) discard;
-            vec3 color = 0.55 + 0.45 * cos(vPosition.y * 2.0 + vec3(0., 2., 4.));
+            vec3 color = vec3(0.78);
             gl_FragColor = vec4(mix(color, vec3(0.12), uWhite), 0.8 * smoothstep(0.5, 0.2, d));
           }`,
       });
@@ -119,6 +130,13 @@ try {
       object.add(points);
       pointObjects.push(points); pointMaterials.push(pointMaterial);
     });
+    // Close the recess left by removing the decorative bows. Bone units are cm.
+    if (headBone && materials[0]) {
+      const skull = new THREE.Mesh(new THREE.SphereGeometry(1, 64, 48), materials[0]);
+      skull.scale.set(7, 7.5, 6);
+      skull.position.set(0, 10, -1);
+      headBone.add(skull);
+    }
     originalMaterials.forEach(material => material.dispose());
     textures.forEach(texture => texture.dispose());
     sculpture.add(model);
@@ -155,7 +173,7 @@ function frame(now) {
   const key = `${state.scroll}/${state.manualTurn}/${state.material}/${state.width}/${state.height}/${state.reduced}`;
   if (state.reduced && lastState === key) return;
   lastState = key;
-  if (!state.reduced) mixer?.update(dt * .5);
+
   const enter = smooth((state.intro - .1) / .85);
   const retreat = smooth(state.form);
   const distance = lerp(lerp(state.width < 700 ? 7.8 : 7.4, 1.2, enter), 5.4, retreat);
@@ -175,18 +193,17 @@ function frame(now) {
     meshes.forEach(mesh => {
       // Keep the mesh parent visible so its particle child can be rendered.
       mesh.material.visible = !particleMode;
-      mesh.material.wireframe = materialMode === 'wire';
+      mesh.material.userData.lineStrength.value = materialMode === 'wire' ? .95 : .4;
     });
     pointObjects.forEach(points => { points.visible = particleMode; });
-    document.querySelector('#figure-mode').textContent = { surface: 'CHROMATIC BODY', wire: 'HUMAN STRUCTURE', points: 'PARTICLE PRESENCE' }[materialMode];
+    document.querySelector('#figure-mode').textContent = { surface: 'PLATINUM / FEMALE FORM', wire: 'CONTOUR STUDY', points: 'PARTICLE PRESENCE' }[materialMode];
   }
   if (Math.abs(lastWhite - state.white) > .005) {
     lastWhite = state.white;
     materials.forEach(material => {
-      material.color.lerpColors(new THREE.Color(0x535b77), new THREE.Color(0xf5f5f2), state.white);
-      material.metalness = lerp(.96, .08, state.white);
+      material.color.lerpColors(new THREE.Color(0x999999), new THREE.Color(0xf5f5f2), state.white);
+      material.metalness = lerp(.72, .12, state.white);
       material.roughness = lerp(.3, .5, state.white);
-      material.iridescence = Math.max(.0001, 1 - state.white);
     });
     pointMaterials.forEach(material => { material.uniforms.uWhite.value = state.white; });
   }

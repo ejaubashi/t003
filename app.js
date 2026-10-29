@@ -67,7 +67,7 @@ function setMaterial(value) {
   document.querySelectorAll('[data-material]').forEach(button => {
     button.setAttribute('aria-pressed', String(button.dataset.material === value));
   });
-  $('#scene-description').textContent = { surface: 'IRIDESCENT SURFACE', wire: 'UNDERLYING STRUCTURE', points: 'INDIVIDUAL PARTICLES' }[value];
+  $('#scene-description').textContent = { surface: 'PLATINUM SURFACE', wire: 'CONTOUR STUDY', points: 'INDIVIDUAL PARTICLES' }[value];
   dirty = true;
 }
 document.querySelectorAll('[data-material]').forEach(button => button.addEventListener('click', () => setMaterial(button.dataset.material)));
